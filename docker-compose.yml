@@ -1,0 +1,22 @@
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:v20.3.0
+    container_name: authorized-lab-juice-shop
+    restart: "no"
+    ports:
+      - "127.0.0.1:8080:3000"
+    networks:
+      - isolated_lab
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    cpus: 1.0
+
+networks:
+  isolated_lab:
+    name: authorized-lab-internal
+    driver: bridge
+    internal: true
