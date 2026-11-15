@@ -1,357 +1,146 @@
-
 # Security Controls and Mitigation Mapping
 
 ## 1. Project Information
 
-Project: Authorized Security Lab
-Application: OWASP Juice Shop v20.3.0
-Reverse Proxy: Nginx
-Environment: Local Docker Lab
-Assessment Type: Security Control Assessment
+Project: Authorized Security Lab  
+Application: OWASP Juice Shop v20.3.0  
+Reverse Proxy: Nginx  
+Environment: Local Docker Lab  
+Assessment Type: Configuration and Control Review
 
-Purpose:
-Document implemented, partially implemented, missing and
-unverified security controls associated with the identified threats.
+A control is marked verified only when a runtime output or other evidence supports that status. Configuration text alone is not proof of runtime enforcement.
 
-Important:
-A control is not considered verified merely because it is
-documented as a recommendation.
-
----
-
-## 2. Control Status Definitions
+## 2. Status Definitions
 
 | Status | Meaning |
 |---|---|
-| Implemented | Configuration or control has been verified |
-| Partially Implemented | Some protection exists, but gaps remain |
-| Not Implemented | Control is not currently configured |
-| Not Verified | Evidence is insufficient to confirm implementation |
-| Not Applicable | Control does not apply to this environment |
-
----
+| Verified | Runtime/configuration evidence was inspected |
+| Configured; not yet verified | Declared in Compose but runtime evidence is pending |
+| Not Verified | No sufficient evidence |
+| Not Implemented | Known not to be configured |
+| Not Applicable | Does not apply to this environment |
 
 ## 3. Network Security Controls
 
 ### NS-01: Localhost-Only Proxy Binding
 
-Related Threats: S-02, I-01
+Related threats: S-02, I-01  
+Configuration: `127.0.0.1:8080:8080`  
+Status: Verified
 
-Control:
-Publish the Nginx proxy only on 127.0.0.1:8080.
-
-Current Configuration:
-127.0.0.1:8080:8080
-
-Status: Implemented
-
-Evidence:
-Docker port inspection confirms:
-8080/tcp -> 127.0.0.1:8080
-
----
+Evidence supplied on 2026-11-15:
+`docker port authorized-lab-proxy` returned `8080/tcp -> 127.0.0.1:8080`.
 
 ### NS-02: Internal Application Network
 
-Related Threats: S-02, E-02
+Related threats: S-02, E-02  
+Configuration: `authorized-lab-internal`, `internal: true`  
+Status: Verified
 
-Control:
-Place Juice Shop on an internal Docker network.
+Evidence supplied on 2026-11-15: Docker network inspection returned `"Internal": true`.
 
-Current Configuration:
-Network: authorized-lab-internal
-Internal: true
+### NS-03: No Direct Juice Shop Host Port
 
-Status: Implemented
+Related threats: S-02, I-01  
+Status: Verified
 
-Evidence:
-Docker network inspection confirms Internal=true.
+Evidence supplied on 2026-11-15:
+`docker inspect authorized-lab-juice-shop --format '{{json .NetworkSettings.Ports}}'`
+returned `{"3000/tcp":null}`.
 
----
+### NS-04: Network Separation
 
-### NS-03: Application Port Exposure
+Related threats: S-02, E-02  
+Status: Verified
 
-Related Threats: S-02, I-01
-
-Control:
-Prevent direct host publication of Juice Shop port 3000.
-
-Status: Implemented
-
-Evidence:
-Docker inspection returned:
-{"3000/tcp":null}
-
----
-
-### NS-04: Proxy Network Separation
-
-Related Threats: S-02, E-02
-
-Control:
-Connect Nginx to both networks while keeping Juice Shop
-on the internal application network only.
-
-Status: Implemented
-
-Evidence:
-- Nginx belongs to both Docker networks.
-- Juice Shop belongs only to authorized-lab-internal.
-- Juice Shop is absent from authorized-lab-proxy-access.
-
----
+Evidence supplied on 2026-11-15: the internal network contained Juice Shop and Nginx; the proxy access network contained Nginx only.
 
 ## 4. Container Security Controls
 
 ### CS-01: Linux Capability Restrictions
 
-Related Threats: E-02
+Related threat: E-02
 
-Control:
-Drop unnecessary Linux capabilities from containers.
+- Juice Shop: `cap_drop: [ALL]` — Verified from runtime inspection.
+- Nginx: `cap_drop: [ALL]` — Configured in the repository Compose file; runtime output still required.
 
-Configuration:
-cap_drop:
-  - ALL
-
-Status: Configured; runtime verification pending.
-
-Evidence Required:
-Inspect container security configuration.
-
----
+Nginx additionally requires the explicitly added `CHOWN`, `SETGID` and `SETUID` capabilities for the current read-only Nginx startup configuration. These additions must be checked against the runtime configuration.
 
 ### CS-02: No New Privileges
 
-Related Threats: E-02
+Related threat: E-02
 
-Control:
-Prevent processes from gaining additional privileges.
-
-Configuration:
-no-new-privileges:true
-
-Status: Configured; runtime verification pending.
-
----
+- Juice Shop: `no-new-privileges:true` — Verified from runtime inspection.
+- Nginx: Configured in Compose; runtime output still required.
 
 ### CS-03: Resource Limits
 
-Related Threats: D-01, D-02
+Related threats: D-01, D-02
 
-Control:
-Limit container CPU and memory consumption.
-
-Juice Shop:
-Memory: 768 MB
-CPU: 1.0
-
-Nginx:
-Memory: 128 MB
-CPU: 0.5
-
-Status: Configured; runtime verification pending.
-
----
+- Juice Shop memory: 768 MiB — Verified (805306368 bytes).
+- Nginx memory: 128 MiB — Configured; runtime output still required.
+- CPU limits: Juice Shop 1.0 CPU and Nginx 0.5 CPU — Configured; runtime verification still required.
 
 ### CS-04: Read-Only Proxy Filesystem
 
-Related Threats: T-02, E-02
+Related threats: T-02, E-02
 
-Control:
-Run the Nginx container with a read-only root filesystem.
-
-Configuration:
-read_only: true
-
-Status: Configured; runtime verification pending.
-
-Note:
-Nginx temporary directories are provided through tmpfs.
-
----
+- Nginx `read_only: true` — Verified from runtime inspection.
+- Nginx temporary writable paths are provided through tmpfs.
 
 ## 5. Application Security Controls
 
-### AS-01: Authentication
+| Control | Related threats | Status |
+|---|---|---|
+| Authentication and session management | S-01 | Not Verified |
+| Server-side authorization | E-01, T-01 | Not Verified |
+| Input validation | T-01 | Not Verified |
+| Sensitive data protection | I-01, I-02 | Not Verified |
 
-Related Threats: S-01
+These controls require a separately approved application assessment. This repository review did not test them.
 
-Control:
-Verify that application authentication is enforced.
+## 6. Logging and Monitoring
 
-Status: Not Verified
+| Control | Related threats | Status |
+|---|---|---|
+| Juice Shop application logging | R-01 | Not Verified |
+| Nginx access/error log availability and retention | R-02 | Not Verified |
+| Evidence storage and access restriction | R-01, R-02 | Policy documented; operational verification pending |
 
-Recommended Action:
-Review authentication and session-management behaviour
-during an approved assessment.
+## 7. Backup and Recovery
 
-### AS-02: Authorization
+| Control | Related threats | Status |
+|---|---|---|
+| Container/lab recovery procedure | T-01, D-01 | Procedure documented; recovery drill not verified |
+| Application data backup | T-01 | Not Verified; confirm whether persistent data is in use |
 
-Related Threats: E-01, T-01
-
-Control:
-Verify server-side authorization for protected operations.
-
-Status: Not Verified
-
-Recommended Action:
-Review access-control requirements and application roles.
-
-### AS-03: Input Validation
-
-Related Threats: T-01
-
-Control:
-Validate application input on the server side.
-
-Status: Not Verified
-
-Recommended Action:
-Review validation requirements and error handling.
-
-### AS-04: Sensitive Data Protection
-
-Related Threats: I-01, I-02
-
-Control:
-Prevent accidental disclosure of sensitive information.
-
-Status: Not Verified
-
-Recommended Action:
-Review data handling, logs and configuration files.
-
----
-
-## 6. Logging and Monitoring Controls
-
-### LM-01: Application Logging
-
-Related Threats: R-01
-
-Control:
-Maintain useful application activity logs.
-
-Status: Not Verified
-
-Recommended Action:
-Review available application logs and timestamps.
-
-### LM-02: Nginx Logging
-
-Related Threats: R-02
-
-Control:
-Maintain proxy access and error logs.
-
-Status: Not Verified
-
-Recommended Action:
-Verify log availability and retention.
-
-### LM-03: Evidence Protection
-
-Related Threats: R-01, R-02
-
-Control:
-Store assessment evidence securely and redact sensitive values.
-
-Status: Policy Documented; Implementation Pending
-
-Recommended Action:
-Establish a local evidence directory with restricted access.
-
----
-
-## 7. Backup and Recovery Controls
-
-### BR-01: Recovery Procedure
-
-Related Threats: T-01, D-01
-
-Control:
-Maintain a recovery procedure for the training environment.
-
-Status: Not Verified
-
-Recommended Action:
-Document container restart and lab recovery procedures.
-
-### BR-02: Application Data Backup
-
-Related Threats: T-01
-
-Control:
-Maintain recoverable application data where required.
-
-Status: Not Verified
-
-Recommended Action:
-Confirm whether persistent application data exists
-and document the appropriate backup procedure.
-
----
-
-## 8. Mitigation Priority
+## 8. Mitigation Priorities
 
 | Priority | Control Area | Action |
 |---|---|---|
-| P1 | Container Security | Verify capabilities and privileges |
-| P1 | Application Security | Review authentication and authorization |
-| P1 | Information Protection | Review sensitive data handling |
-| P2 | Network Security | Maintain network separation |
-| P2 | Logging | Verify application and proxy logs |
-| P2 | Resource Management | Verify resource limits |
-| P3 | Backup and Recovery | Document recovery procedures |
-| P3 | Evidence Handling | Implement evidence storage procedures |
+| P1 | Container security | Complete Nginx runtime verification |
+| P1 | Application security | Assess authentication and authorization only after approval |
+| P1 | Information protection | Review sensitive data handling only after approval |
+| P2 | Network security | Preserve loopback binding and network separation |
+| P2 | Logging | Verify log availability and retention |
+| P2 | Resource management | Verify CPU and memory runtime limits |
+| P3 | Backup and recovery | Document and approve a recovery procedure |
+| P3 | Evidence handling | Implement restricted local evidence storage |
 
----
+## 9. Overall Assessment
 
-## 9. Overall Control Assessment
+- Network topology: Verified from user-provided Docker inspection outputs.
+- Juice Shop selected hardening settings: Verified.
+- Nginx read-only filesystem: Verified.
+- Nginx capabilities, no-new-privileges and memory limit: Runtime verification pending.
+- CPU limits: Runtime verification pending.
+- Application security, logging and backup controls: Not verified.
+- Authorization: Pending; security testing is NOT AUTHORIZED.
 
-Network controls:
-Implemented and supported by Docker inspection evidence.
+## 10. Approval
 
-Container controls:
-Configuration documented; runtime verification pending.
-
-Application controls:
-Not yet verified.
-
-Logging controls:
-Not yet verified.
-
-Backup and recovery:
-Not yet verified.
-
-Evidence handling:
-Policy documented; implementation pending.
-
----
-
-## 10. Authorization Status
-
-No security testing is authorized by this document.
-
-Testing requires:
-1. Written authorization.
-2. Signed Rules of Engagement.
-3. Confirmed asset ownership and scope.
-4. Approved testing window.
-5. Emergency contact details.
-6. Recovery and stopping procedures.
-
----
-
-## 11. Approval
-
-Prepared By: __________________________
-
-Reviewed By: __________________________
-
-Authorized Approver: __________________
-
-Date: _________________________________
-
-Approval Status: Pending
+Prepared by: __________________________  
+Reviewed by: __________________________  
+Authorized approver: __________________  
+Date: __________________________________  
+Approval status: Pending
