@@ -1,25 +1,28 @@
-
 # Authorization and Readiness Status
 
 ## 1. Project Details
 
-Project: Authorized Security Lab
-Environment: Local Docker Training Lab
-Application: OWASP Juice Shop v20.3.0
-Proxy: Nginx
+Project: Authorized Security Lab  
+Environment: Local Docker Training Lab  
+Application: OWASP Juice Shop v20.3.0  
+Reverse Proxy: Nginx  
+Last user-supplied local validation date: 2026-11-15
 
 ## 2. Lab Deployment Status
 
 | Component | Status |
 |---|---|
-| Docker Desktop | Running when manually started |
-| Juice Shop | Deployed |
-| Nginx Proxy | Deployed |
-| Internal Docker Network | Verified |
-| Proxy Access Network | Verified |
-| Localhost Port Binding | Verified |
-| Direct Juice Shop Port Exposure | Not exposed |
-| Application HTTP Response | 200 OK |
+| Docker Desktop | Installed; started manually for lab use |
+| Juice Shop | Deployed; running at last reported validation |
+| Nginx Proxy | Deployed; running at last reported validation |
+| Internal Docker Network | Verified: Internal=true |
+| Proxy Access Network | Verified: standard bridge, Internal=false |
+| Localhost Port Binding | Verified: 127.0.0.1:8080 |
+| Direct Juice Shop Host Port | Verified: no host binding |
+| Application HTTP Response | Verified: HTTP 200 at last reported check |
+| Separate VM-01 | Not deployed or validated |
+
+Runtime status can change after containers are stopped or recreated. Re-run the verification script when starting the lab.
 
 ## 3. Security Configuration Status
 
@@ -27,56 +30,63 @@ Proxy: Nginx
 |---|---|
 | Juice Shop no-new-privileges | Verified |
 | Juice Shop cap_drop ALL | Verified |
-| Juice Shop memory limit | Verified |
+| Juice Shop memory limit 768 MiB | Verified |
 | Nginx read-only filesystem | Verified |
-| Nginx capabilities | Pending verification |
-| Nginx memory limit | Pending verification |
-| Nginx no-new-privileges | Pending verification |
+| Nginx cap_drop ALL | Configured; runtime verification pending |
+| Nginx added capabilities CHOWN, SETGID, SETUID | Configured; runtime verification pending |
+| Nginx no-new-privileges | Configured; runtime verification pending |
+| Nginx memory limit 128 MiB | Configured; runtime verification pending |
+| CPU limits | Configured; runtime verification pending |
 | Network separation | Verified |
 
 ## 4. Documentation Status
 
 | Document | Status |
 |---|---|
-| Asset Inventory | Prepared |
+| Asset Inventory | Prepared; owner confirmation pending |
 | Architecture and Data Flow | Prepared |
-| STRIDE Threat Register | Prepared |
-| Abuse Case Analysis | Prepared |
+| STRIDE Threat Register | Prepared; theoretical risks only |
+| Abuse Case Analysis | Prepared; hypothetical scenarios only |
 | Security Controls Mapping | Prepared |
-| Rules of Engagement | Draft |
+| Rules of Engagement | Draft; not signed |
 | Evidence Handling Plan | Prepared |
+| Evidence Register | Template only |
+| Authorization Status | Current status documented |
 
 ## 5. Authorization Requirements
 
 | Requirement | Status |
 |---|---|
-| Asset owner confirmation | Pending |
+| Asset owner identity and ownership confirmation | Pending |
 | Named authorized approver | Pending |
 | Written authorization | Pending |
 | Signed Rules of Engagement | Pending |
-| Confirmed testing window | Pending |
+| Confirmed testing dates and time window | Pending |
 | Timezone confirmation | Pending |
-| Emergency contact | Pending |
+| Emergency and owner contacts | Pending |
 | Recovery procedure approval | Pending |
-| VM deployment and isolation validation | Pending / Not in current scope |
+| VM-01 deployment and isolation validation | Not applicable to current Docker-only setup; pending if VM is later proposed |
 
 ## 6. Current Authorization Decision
 
-Status: NOT AUTHORIZED FOR SECURITY TESTING
+**NOT AUTHORIZED FOR SECURITY TESTING**
 
-Reason:
-Written approval and completed Rules of Engagement
-have not yet been obtained.
+Reason: written approval and signed Rules of Engagement have not been obtained. Local deployment, configuration checks and repository documentation do not grant permission to perform security testing.
 
 ## 7. Conditions for Readiness
 
-The project may be considered ready for an authorized assessment
-only after all required approval and safety conditions are satisfied.
+Before any security assessment:
 
-Prepared By: __________________________
+1. Confirm the asset owner and exact assets in scope.
+2. Obtain written authorization from an authorized approver.
+3. Complete and sign the Rules of Engagement.
+4. Confirm the test dates, times, timezone and authorized personnel.
+5. Confirm emergency contacts and stop authority.
+6. Approve recovery and evidence-retention procedures.
+7. Re-run local configuration checks and preserve non-sensitive evidence.
+8. Exclude VM-01 unless it is separately deployed, isolated and approved.
 
-Reviewed By: __________________________
-
-Authorized Approver: __________________
-
-Date: _________________________________
+Prepared by: __________________________  
+Reviewed by: __________________________  
+Authorized approver: __________________  
+Date: __________________________________
