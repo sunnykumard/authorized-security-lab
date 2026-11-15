@@ -44,12 +44,14 @@ if ($LASTEXITCODE -ne 0 -or $proxyInternal -ne "false") {
 
 $juiceNetworks = (Get-DockerValue $juice '{{json .NetworkSettings.Networks}}') | ConvertFrom-Json
 $proxyNetworks = (Get-DockerValue $proxy '{{json .NetworkSettings.Networks}}') | ConvertFrom-Json
-if (-not $juiceNetworks.PSObject.Properties.Name.Contains($internalNetwork) -or
-    $juiceNetworks.PSObject.Properties.Name.Contains($proxyNetwork)) {
+$juiceNetworkNames = @($juiceNetworks.PSObject.Properties.Name)
+$proxyNetworkNames = @($proxyNetworks.PSObject.Properties.Name)
+if ($juiceNetworkNames -notcontains $internalNetwork -or
+    $juiceNetworkNames -contains $proxyNetwork) {
     throw "STOP: Juice Shop network membership is not restricted to the internal network."
 }
-if (-not $proxyNetworks.PSObject.Properties.Name.Contains($internalNetwork) -or
-    -not $proxyNetworks.PSObject.Properties.Name.Contains($proxyNetwork)) {
+if ($proxyNetworkNames -notcontains $internalNetwork -or
+    $proxyNetworkNames -notcontains $proxyNetwork) {
     throw "Nginx must be attached to both expected networks."
 }
 
