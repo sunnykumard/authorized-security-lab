@@ -1,0 +1,59 @@
+name: Compose configuration validation
+
+on:
+  push:
+    paths:
+      - "docker-compose.yml"
+      - "config/**"
+      - ".github/workflows/compose-validation.yml"
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "config/**"
+      - ".github/workflows/compose-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Assert intended network and port topology
+        run: |
+          docker compose config --format json > compose.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          config = json.loads(Path("compose.json").read_text())
+          services = config["services"]
+          assert set(services) == {"juice-shop", "lab-proxy"}
+
+          juice = services["juice-shop"]
+          proxy = services["lab-proxy"]
+
+          assert not juice.get("ports"), "Juice Shop must not publish host ports"
+          assert "3000" in [str(p) for p in juice.get("expose", [])]
+
+          published = proxy.get("ports", [])
+          assert any(
+              p.get("host_ip") == "127.0.0.1"
+              and str(p.get("published")) == "8080"
+              and int(p.get("target")) == 8080
+              for p in published
+          ), "Nginx must publish 8080 only on loopback"
+
+          networks = config["networks"]
+          assert networks["isolated_lab"].get("internal") is True
+          assert set(juice["networks"]) == {"isolated_lab"}
+          assert set(proxy["networks"]) == {"isolated_lab", "proxy_access"}
+
+          print("Compose topology checks passed.")
+          PY
