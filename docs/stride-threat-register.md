@@ -1,47 +1,451 @@
-# STRIDE Threat Register
 
-## Scope and method
+# STRIDE Threat Model and Risk Register
 
-This register assesses the two assets in the approved inventory only: LAB-01 (localhost training web app) and LAB-02 (host-only deliberately vulnerable VM). Ratings are preliminary design assessments, not confirmed vulnerabilities. Reassess after setup and record evidence without expanding scope.
+## 1. Project Information
 
-**Scale:** Likelihood (L) and Impact (I): 1 = Low, 2 = Moderate, 3 = High. Priority = L × I. Priority bands: 1–2 Low, 3–4 Medium, 6–9 High. Ratings assume synthetic data and an isolated lab.
+Project: Authorized Security Lab
+Application: OWASP Juice Shop v20.3.0
+Reverse Proxy: Nginx
+Environment: Local Docker-based training environment
+Host OS: Windows
+Application URL: http://127.0.0.1:8080
 
-| ID | STRIDE | Asset / abuse case | L | I | Score | Ranked mitigations / owner |
-|---|---|---|---:|---:|---:|---|
-| S-01 | Spoofing | LAB-01: an attacker impersonates a synthetic user by abusing weak authentication or session handling | 2 | 2 | 4 Medium | M1: use disposable lab credentials and strong password handling; M2: secure session cookies and rotate sessions after authentication; M3: rate-limit login attempts. Owner: app maintainer |
-| S-02 | Spoofing | LAB-02: an unauthorized lab user obtains an account or reuses credentials outside the exercise | 2 | 3 | 6 High | M1: unique synthetic credentials, never reused; M2: restrict VM console/SSH access to authorized operators; M3: remove test accounts and rotate lab secrets after the exercise. Owner: VM owner |
-| T-01 | Tampering | LAB-01: untrusted input changes application state or stored training records without authorization | 2 | 2 | 4 Medium | M1: server-side validation and parameterized data access; M2: enforce authorization on every state-changing operation; M3: keep a snapshot and synthetic data reset procedure. Owner: app maintainer |
-| T-02 | Tampering | LAB-02: local user modifies configuration or files beyond intended lab permissions | 2 | 3 | 6 High | M1: least-privilege accounts and file permissions; M2: record baseline configuration and checksums for critical training files; M3: snapshot before exercise and restore after. Owner: VM owner |
-| R-01 | Repudiation | Either asset: actions cannot be reliably attributed because events are not logged or timestamps are inconsistent | 2 | 2 | 4 Medium | M1: enable bounded application/VM audit logs; M2: synchronize lab clocks where practical; M3: retain minimal, access-controlled evidence with a finding ID. Owner: lab owner |
-| I-01 | Information Disclosure | LAB-01: verbose errors, exposed files, or missing authorization reveal synthetic lab information | 2 | 2 | 4 Medium | M1: generic external errors; M2: authorization checks and deny-by-default access; M3: ensure only synthetic data is loaded and redact evidence. Owner: app maintainer |
-| I-02 | Information Disclosure | LAB-02: unintended service exposure or insecure permissions expose VM configuration or test secrets | 2 | 3 | 6 High | M1: minimize listening services and bind to the host-only interface; M2: firewall inbound traffic to required lab sources; M3: protect secrets and avoid shared folders containing host data. Owner: VM owner |
-| D-01 | Denial of Service | LAB-01 or LAB-02: excessive requests or resource exhaustion makes the training target unavailable | 2 | 3 | 6 High | M1: DoS and stress testing are prohibited; M2: set conservative request-rate limits and short test batches; M3: monitor health and stop on latency/errors or resource pressure. Owner: assessor and lab owner |
-| E-01 | Elevation of Privilege | LAB-01: a lower-privilege synthetic user accesses an administrative function due to a broken authorization check | 2 | 3 | 6 High | M1: server-side role checks on every privileged action; M2: deny by default; M3: test only with owner-approved synthetic roles and stop before host/OS escalation. Owner: app maintainer |
-| E-02 | Elevation of Privilege | LAB-02: a normal VM account reaches privileges outside the intended exercise boundary | 2 | 3 | 6 High | M1: isolate and snapshot VM; M2: restrict administrative credentials to owner/operator; M3: no persistence, kernel exploitation, hypervisor escape, or host access. Owner: VM owner |
+Purpose:
+Identify potential security threats, assess risks, and document
+mitigations before conducting any authorized security assessment.
 
-## Ranked cross-cutting mitigations
+This document represents a theoretical threat assessment.
+It does not confirm that any listed vulnerability exists.
 
-1. **P1 — Enforce isolation and scope:** host-only VM networking; localhost-only web app; no NAT, bridged interface, forwarding, or external route. Verify before each window.
-2. **P1 — Written authorization and explicit boundaries:** signed owner approval, inventory-controlled targets, named contacts, test schedule, and emergency stop authority.
-3. **P1 — Prevent destructive/unbounded tests:** prohibit DoS, stress/fuzzing at scale, persistence, destructive payloads, credential reuse, and uncontrolled extraction.
-4. **P2 — Least privilege and synthetic identities:** unique test accounts, least privilege, no real or reused credentials, and owner-approved role fixtures only.
-5. **P2 — Backups and rollback:** clean snapshot/backup before testing; documented restoration owner and procedure.
-6. **P2 — Evidence minimization:** redact secrets and personal data; store evidence locally with restricted access; set deletion date.
-7. **P3 — Logging and remediation:** bounded audit logging, consistent timestamps, documented findings, and retest only after owner approval.
+---
 
-## Abuse-case boundaries
+## 2. Scope and Assets
 
-These are review scenarios, not permission to attack systems outside the inventory:
+| Asset ID | Asset | Description |
+|---|---|---|
+| LAB-01 | OWASP Juice Shop | Intentionally vulnerable web application |
+| LAB-02 | Nginx Proxy | Local application access gateway |
+| NET-01 | Internal Docker Network | Isolated application network |
+| NET-02 | Proxy Access Network | Network connected to Nginx |
+| HOST-01 | Windows Host | Runs Docker Desktop and browser |
+| DATA-01 | Application Data | Training application data |
+| LOG-01 | Container Logs | Application and proxy activity records |
 
-- A user attempts to call an application function without the required synthetic role.
-- A user submits malformed or unexpected input to a documented application field using a small, bounded test set.
-- A user requests a non-public synthetic record through the application and access is expected to be denied.
-- An operator checks which deliberately enabled VM services are reachable from the host-only assessor interface, without scanning beyond the exact VM.
-- An assessor checks that a prohibited external route is absent; do not send probes to external destinations.
+Out of Scope:
+- Public IP addresses and internet-facing systems
+- University and campus networks
+- Home and office networks
+- Third-party applications and services
+- Unlisted virtual machines
+- Host OS and hypervisor penetration testing
 
-## Residual risks and assumptions
+---
 
-- The exact web application, VM operating system, enabled services, application roles, storage components, and logging configuration were not provided. Asset-specific findings cannot be asserted until the owner documents these details.
-- The inventory names RabTech lab as owner but does not identify an individual approver or emergency contact.
-- The student-defined approved window must be converted to exact date/time and timezone before execution.
-- Any change to IP, URL, VM network mode, owner, service, or test technique requires a reviewed inventory/ROE update before work resumes.
+## 3. Risk Assessment Methodology
+
+Likelihood:
+1 = Rare
+2 = Unlikely
+3 = Possible
+4 = Likely
+5 = Almost Certain
+
+Impact:
+1 = Negligible
+2 = Minor
+3 = Moderate
+4 = Major
+5 = Critical
+
+Risk Score = Likelihood × Impact
+
+Risk Classification:
+
+| Score | Risk Level |
+|---|---|
+| 1–4 | Low |
+| 5–9 | Medium |
+| 10–16 | High |
+| 17–25 | Critical |
+
+Risk scores are preliminary estimates for planning.
+They must be reassessed after controls are verified.
+
+---
+
+## 4. STRIDE Threat Register
+
+### S — Spoofing
+
+Threat ID: S-01
+
+Affected Asset: LAB-01
+
+Threat Scenario:
+An unauthorized user attempts to impersonate a legitimate application user.
+
+Potential Impact:
+Unauthorized access to user-specific application functionality.
+
+Likelihood: 3
+Impact: 4
+Risk Score: 12
+Risk Level: High
+
+Mitigations:
+- Enforce appropriate authentication controls.
+- Use secure session management.
+- Validate authentication tokens.
+- Protect session cookies.
+- Avoid storing credentials in plaintext.
+
+---
+
+Threat ID: S-02
+
+Affected Asset: LAB-02
+
+Threat Scenario:
+An unauthorized client attempts to access the application through an
+untrusted or unintended network path.
+
+Potential Impact:
+Unauthorized access to the local training application.
+
+Likelihood: 2
+Impact: 4
+Risk Score: 8
+Risk Level: Medium
+
+Mitigations:
+- Bind the published proxy port to 127.0.0.1.
+- Avoid publishing the Juice Shop port directly.
+- Review Docker port mappings.
+- Keep the lab environment restricted to authorized users.
+
+---
+
+### T — Tampering
+
+Threat ID: T-01
+
+Affected Asset: LAB-01, DATA-01
+
+Threat Scenario:
+An attacker modifies application data or submits unauthorized changes
+through application requests.
+
+Potential Impact:
+Data integrity loss and unauthorized modification of application state.
+
+Likelihood: 3
+Impact: 4
+Risk Score: 12
+Risk Level: High
+
+Mitigations:
+- Apply server-side input validation.
+- Enforce authorization checks.
+- Validate business logic.
+- Use appropriate database permissions.
+- Maintain recoverable application data.
+
+---
+
+Threat ID: T-02
+
+Affected Asset: LAB-02
+
+Threat Scenario:
+An unauthorized modification of reverse-proxy configuration changes
+request routing or access restrictions.
+
+Potential Impact:
+Requests may be forwarded incorrectly or access restrictions weakened.
+
+Likelihood: 2
+Impact: 4
+Risk Score: 8
+Risk Level: Medium
+
+Mitigations:
+- Mount Nginx configuration as read-only.
+- Restrict access to project configuration files.
+- Review configuration changes.
+- Maintain backups of known-good configuration.
+
+---
+
+### R — Repudiation
+
+Threat ID: R-01
+
+Affected Asset: LOG-01, LAB-01
+
+Threat Scenario:
+A user denies performing an action because application activity
+cannot be reliably attributed or reconstructed.
+
+Potential Impact:
+Difficulty investigating incidents and establishing accountability.
+
+Likelihood: 3
+Impact: 3
+Risk Score: 9
+Risk Level: Medium
+
+Mitigations:
+- Enable appropriate application logging.
+- Record relevant timestamps.
+- Protect logs from unauthorized modification.
+- Maintain a documented evidence-handling process.
+- Redact sensitive information from collected evidence.
+
+---
+
+Threat ID: R-02
+
+Affected Asset: LAB-02, LOG-01
+
+Threat Scenario:
+Proxy request records are incomplete or unavailable during an incident.
+
+Potential Impact:
+Difficulty tracing requests between the browser, proxy and application.
+
+Likelihood: 3
+Impact: 3
+Risk Score: 9
+Risk Level: Medium
+
+Mitigations:
+- Maintain appropriate Nginx access and error logs.
+- Synchronize system time where practical.
+- Record assessment activities.
+- Retain evidence according to the approved retention policy.
+
+---
+
+### I — Information Disclosure
+
+Threat ID: I-01
+
+Affected Asset: LAB-01, DATA-01
+
+Threat Scenario:
+Sensitive application information becomes accessible to an unauthorized user.
+
+Potential Impact:
+Exposure of personal, account or application information.
+
+Likelihood: 3
+Impact: 5
+Risk Score: 15
+Risk Level: High
+
+Mitigations:
+- Apply access control to sensitive resources.
+- Avoid storing unnecessary sensitive information.
+- Redact secrets from logs.
+- Use secure transport where required.
+- Restrict access to application data.
+
+---
+
+Threat ID: I-02
+
+Affected Asset: HOST-01, LAB-01
+
+Threat Scenario:
+Sensitive information is unintentionally exposed through container
+logs, environment variables or configuration files.
+
+Potential Impact:
+Exposure of credentials, tokens or internal configuration details.
+
+Likelihood: 3
+Impact: 4
+Risk Score: 12
+Risk Level: High
+
+Mitigations:
+- Do not commit secrets to source control.
+- Restrict access to configuration files.
+- Review logs before sharing evidence.
+- Use environment-specific secret management.
+- Remove unnecessary sensitive information.
+
+---
+
+### D — Denial of Service
+
+Threat ID: D-01
+
+Affected Asset: LAB-01
+
+Threat Scenario:
+Excessive application requests consume available container resources.
+
+Potential Impact:
+Application slowdown or service unavailability.
+
+Likelihood: 3
+Impact: 4
+Risk Score: 12
+Risk Level: High
+
+Mitigations:
+- Configure CPU and memory limits.
+- Establish request-rate limits.
+- Monitor container health.
+- Avoid stress testing without separate written approval.
+- Maintain a safe shutdown procedure.
+
+---
+
+Threat ID: D-02
+
+Affected Asset: LAB-02
+
+Threat Scenario:
+Proxy resource exhaustion prevents users from reaching the application.
+
+Potential Impact:
+Loss of access to the local training environment.
+
+Likelihood: 2
+Impact: 3
+Risk Score: 6
+Risk Level: Medium
+
+Mitigations:
+- Apply proxy container resource limits.
+- Monitor proxy logs.
+- Keep unnecessary services disabled.
+- Restart the lab only through documented procedures.
+
+---
+
+### E — Elevation of Privilege
+
+Threat ID: E-01
+
+Affected Asset: LAB-01
+
+Threat Scenario:
+A user with limited application privileges obtains access to
+administrative functionality.
+
+Potential Impact:
+Unauthorized access to privileged application operations.
+
+Likelihood: 3
+Impact: 5
+Risk Score: 15
+Risk Level: High
+
+Mitigations:
+- Enforce server-side role-based authorization.
+- Validate permissions for sensitive operations.
+- Apply least-privilege principles.
+- Review administrative functionality.
+- Monitor privilege-related events.
+
+---
+
+Threat ID: E-02
+
+Affected Asset: LAB-01, LAB-02
+
+Threat Scenario:
+A compromised application container attempts to access resources
+outside its intended container permissions or network boundary.
+
+Potential Impact:
+Unauthorized access to other containers or host resources.
+
+Likelihood: 2
+Impact: 5
+Risk Score: 10
+Risk Level: High
+
+Mitigations:
+- Drop unnecessary Linux capabilities.
+- Enable no-new-privileges.
+- Avoid privileged containers.
+- Do not mount sensitive host directories.
+- Keep the application on the internal Docker network.
+- Review container permissions and network membership.
+
+---
+
+## 5. Prioritized Mitigation Plan
+
+| Priority | Threat IDs | Recommended Action |
+|---|---|---|
+| 1 | I-01, E-01 | Review access control and authorization |
+| 2 | E-02 | Review container isolation and privileges |
+| 3 | T-01, I-02 | Protect application data and secrets |
+| 4 | D-01, D-02 | Maintain resource limits and monitoring |
+| 5 | S-01, S-02 | Review authentication and access boundaries |
+| 6 | R-01, R-02 | Improve logging and evidence handling |
+| 7 | T-02 | Protect configuration integrity |
+
+---
+
+## 6. Trust Boundaries
+
+Boundary 1: Windows Host to Nginx Proxy
+- Access through 127.0.0.1:8080.
+- Proxy port is bound to localhost.
+
+Boundary 2: Proxy Access Network
+- Docker network: authorized-lab-proxy-access.
+- Only Nginx is currently attached.
+
+Boundary 3: Internal Application Network
+- Docker network: authorized-lab-internal.
+- Internal=true.
+- Connects Nginx and Juice Shop.
+
+Boundary 4: Application Data
+- Application requests are processed by Juice Shop.
+- Application data must remain within the approved lab scope.
+
+---
+
+## 7. Assumptions and Limitations
+
+- Risk scores are preliminary and based on theoretical scenarios.
+- No listed threat is confirmed as an exploitable vulnerability.
+- No penetration test has been performed.
+- The separate VM at 192.168.56.20 is not yet deployed or validated.
+- Docker isolation does not independently establish complete host security.
+- Threat scores must be updated following authorized validation.
+
+---
+
+## 8. Authorization Status
+
+Security testing is NOT AUTHORIZED until:
+
+1. Written authorization is obtained.
+2. Rules of Engagement are signed.
+3. Authorized assets are confirmed.
+4. Testing dates and time windows are approved.
+5. Emergency contacts and stopping conditions are documented.
+6. Backups and recovery procedures are confirmed.
+
+---
+
+## 9. Review and Approval
+
+Prepared By: __________________________
+
+Reviewed By: __________________________
+
+Authorized Approver: __________________
+
+Date: _________________________________
+
+Approval Status: Pending

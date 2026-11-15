@@ -1,80 +1,84 @@
-# Lab Architecture, Assets, Trust Boundaries, and Data Flow
 
-## 1. Architecture overview
+# Architecture and Data-Flow Documentation
 
-The engagement uses only two explicitly inventoried targets. This document describes the expected design; verify the actual deployment before testing. Any discovered service or dependency not listed in the asset inventory is not automatically authorized.
+## 1. Project Overview
 
-- **LAB-01 — Local training web app:** `http://127.0.0.1:8080`, accessible only from the assessor's local machine.
-- **LAB-02 — Deliberately vulnerable VM:** `192.168.56.20`, accessible only over a private host-only virtual network.
-- **Assessor workstation:** administrative/test client, not an independently approved target. It may be used only to operate the lab and generate bounded test requests. Do not perform security tests against the workstation, host OS, hypervisor, or other local services.
-- **Lab owner:** RabTech lab, per supplied inventory. Named individual and escalation contact must be filled in before test authorization.
+Project: Authorized Security Lab  
+Environment: Local Docker-based training environment  
+Application: OWASP Juice Shop v20.3.0  
+Reverse Proxy: Nginx  
+Host Operating System: Windows  
+Access URL: http://127.0.0.1:8080
 
-## 2. Trust boundaries
+## 2. Architecture Components
 
-| Boundary | Description | Security requirement |
+| Component | Identifier | Purpose |
 |---|---|---|
-| TB-1: Assessor workstation to localhost app | Loopback interface to LAB-01 | Bind app to loopback; restrict requests to the local host; do not expose it on LAN interfaces |
-| TB-2: Assessor workstation to host-only VM | Private virtual network to LAB-02 | Host-only adapter only; no bridged mode, port forwarding, or route to public/third-party systems |
-| TB-3: Application to its local data store (if present) | Internal app process boundary | Treat database/storage as part of LAB-01 only if owner documents and approves it; otherwise do not probe separately |
-| TB-4: Lab to external networks | Any internet, campus, home, office, or cloud route | Prohibited for test traffic; disable outbound access and stop if observed |
+| Windows Host | Local machine | Runs Docker Desktop and accesses the lab |
+| Nginx Proxy | authorized-lab-proxy | Provides localhost-only application access |
+| Juice Shop | authorized-lab-juice-shop | Intentionally vulnerable training application |
+| Internal Network | authorized-lab-internal | Isolated application network |
+| Proxy Network | authorized-lab-proxy-access | Connects the proxy to the host-published service |
 
-## 3. Data classes
+## 3. Network Configuration
 
-| Class | Examples | Handling |
-|---|---|---|
-| D0 — Synthetic/public training data | Seeded demo records, deliberately fake content | May be used for tests; keep within lab |
-| D1 — Lab configuration | Service settings, version information, network configuration | Minimum collection; redact sensitive values in reports |
-| D2 — Credentials/secrets | Test passwords, session tokens, keys | Use disposable synthetic credentials only; never reuse real credentials; redact immediately |
-| D3 — Personal/production/confidential data | Real identities, real user records, production data | Not authorized; stop immediately if encountered; do not copy or inspect |
+### Internal Network
 
-## 4. Identities and roles
+- Name: authorized-lab-internal
+- Driver: bridge
+- Subnet: 172.19.0.0/16
+- Gateway: 172.19.0.1
+- Internal: true
+- Connected containers:
+  - authorized-lab-juice-shop
+  - authorized-lab-proxy
 
-| Identity | Purpose | Privilege rule |
-|---|---|---|
-| Lab owner (RabTech lab; named contact pending) | Owns assets and grants written authorization | Approves scope, window, allowed techniques, emergency contact, and stop/restart |
-| Assessor (name to be completed) | Performs approved checks | Uses named, least-privilege lab accounts; no credential reuse |
-| Synthetic application user | Exercises normal application behavior | Disposable account with minimum required role |
-| Synthetic administrator (only if supplied/approved) | Validates administrative authorization controls | Use only within the app/VM and only for explicitly approved checks |
-| VM local administrator | Manages the training VM | Administrative access for setup/rollback only; do not test the hypervisor/host |
+### Proxy Access Network
 
-Do not create, test, or use an identity that the owner has not supplied or explicitly approved. Do not attempt privilege escalation beyond the agreed application/VM test cases.
+- Name: authorized-lab-proxy-access
+- Driver: bridge
+- Subnet: 172.18.0.0/16
+- Gateway: 172.18.0.1
+- Internal: false
+- Connected containers:
+  - authorized-lab-proxy
 
-## 5. Data-flow diagram
+## 4. Data Flow
 
-The following Mermaid diagram is the intended logical flow. It does not imply that an unlisted database, service, or network endpoint is in scope.
+1. The user accesses http://127.0.0.1:8080 from the Windows host.
+2. Docker forwards the request to the Nginx proxy.
+3. Nginx receives the request on port 8080.
+4. Nginx forwards the request to http://juice-shop:3000.
+5. Juice Shop processes the request.
+6. The response returns through Nginx to the user's browser.
 
-```mermaid
-flowchart LR
-    A["Assessor workstation (test operator)"]
-    subgraph B["TB-1: Loopback boundary"]
-      W["LAB-01 Training web app 127.0.0.1:8080"]
-    end
-    subgraph C["TB-2: Private host-only boundary"]
-      V["LAB-02 Deliberately vulnerable VM 192.168.56.20"]
-    end
-    E["Evidence store (local, access-restricted)"]
-    X["External / third-party networks OUT OF SCOPE"]
+## 5. Security Boundaries
 
-    A -->|"bounded HTTP requests"| W
-    A -->|"approved VM lab traffic only"| V
-    W -->|"redacted notes / screenshots"| E
-    V -->|"redacted notes / screenshots"| E
-    A -. "No test traffic or data transfer" .-> X
-```
+- Juice Shop has no published host port.
+- Juice Shop is connected only to the internal Docker network.
+- Nginx is the only container connected to both Docker networks.
+- The host-published proxy port is bound to 127.0.0.1.
+- The proxy-access network is not marked internal.
+- No external or third-party targets are included in this lab scope.
 
-## 6. Expected attack surfaces (confirm before testing)
+## 6. Observed Validation Results
 
-- LAB-01: HTTP routes and methods exposed by the local training web application; authentication/session handling; input validation; authorization checks; security headers and error handling.
-- LAB-02: only services deliberately enabled for the exercise and documented by the lab owner; local authentication and configuration; host firewall and network exposure as observed from the host-only segment.
-- Management interfaces, hypervisor services, host-operating-system services, shared folders, clipboard integration, bridged/NAT adapters, and unrelated services are not targets.
+- Juice Shop container: Running
+- Nginx container: Running
+- Juice Shop port 3000: No host binding
+- Nginx port 8080: Bound to 127.0.0.1
+- HTTP response: 200 OK
+- Internal Docker network: Internal=true
+- Proxy access network: Internal=false
+- Juice Shop membership in proxy access network: Not present
 
-## 7. Pre-test validation checklist
+## 7. Limitations
 
-- [ ] Both targets match the exact inventory addresses.
-- [ ] LAB-01 listens only on loopback (not 0.0.0.0 or a LAN address).
-- [ ] LAB-02 network adapter is host-only; bridged networking, NAT, port forwarding, and external routes are disabled.
-- [ ] No route from the lab to public, campus, home, office, or third-party networks.
-- [ ] Synthetic data and disposable accounts are used.
-- [ ] VM snapshot and app/database backup are available.
-- [ ] Owner has confirmed the named contacts, test window, allowed techniques, and emergency stop process.
-- [ ] Any newly discovered asset is excluded until written inventory amendment and approval.
+- Docker network isolation does not independently prove host firewall isolation.
+- Container IP addresses may change after recreation.
+- The separate vulnerable VM at 192.168.56.20 has not yet been deployed or validated.
+- This document records lab configuration, not authorization to conduct security testing.
+
+## 8. Authorization Status
+
+Security testing remains pending written authorization, signed Rules of Engagement, confirmed testing dates, and completed scope approval.

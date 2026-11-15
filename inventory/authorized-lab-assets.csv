@@ -1,3 +1,6 @@
-asset_id,asset_name,owner,environment,ip_or_url,testing_allowed,excluded_actions,approved_window,evidence_classification
-LAB-01,Local training web app,RabTech lab,Isolated localhost,http://127.0.0.1:8080,Yes,No denial of service or third-party scanning,Student-defined approved window,Confidential training evidence
-LAB-02,Deliberately vulnerable VM,RabTech lab,Private host-only network,192.168.56.20,Yes,No persistence or outbound traffic,Student-defined approved window,Confidential training evidence
+Asset ID,Asset Name,Asset Type,IP Address / Hostname,Port,Environment,Owner,Status,Scope,Description,Notes
+LAB-01,OWASP Juice Shop,Web Application,juice-shop,3000,Docker Local Lab,RabTech Lab,Running,In Scope,Intentionally vulnerable web application,Accessible only through Nginx reverse proxy
+LAB-02,Nginx Reverse Proxy,Reverse Proxy,127.0.0.1,8080,Docker Local Lab,RabTech Lab,Running,In Scope,Provides localhost-only access to Juice Shop,Host binding restricted to 127.0.0.1
+NET-01,Authorized Lab Internal Network,Docker Network,authorized-lab-internal,N/A,Docker Local Lab,RabTech Lab,Created,In Scope,Isolated internal network connecting proxy and Juice Shop,Internal Docker network with no direct external connectivity
+NET-02,Authorized Lab Proxy Access Network,Docker Network,authorized-lab-proxy-access,N/A,Docker Local Lab,RabTech Lab,Created,In Scope,Network providing access to the Nginx proxy,Connected to Nginx proxy only
+VM-01,Intentionally Vulnerable Training VM,Virtual Machine,192.168.56.20,N/A,Host-Only Virtual Network,RabTech Lab,Not Deployed,Pending,Separate vulnerable training VM,Do not test until deployed and network isolation verified

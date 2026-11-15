@@ -1,15 +1,82 @@
-# Authorization Status
 
-**Status as of 2026-11-15: NOT AUTHORIZED TO TEST — approval fields are incomplete.**
+# Authorization and Readiness Status
 
-The supplied inventory lists RabTech lab as the asset owner and identifies two permitted lab assets. The supplied Rules of Engagement template requires the lab owner, assessor, approved assets, approval date, exact permitted activities, test window, emergency contact, evidence handling, and stop conditions.
+## 1. Project Details
 
-This repository contains a completed draft engagement dossier, but it does not create legal permission by itself. Before any security testing:
+Project: Authorized Security Lab
+Environment: Local Docker Training Lab
+Application: OWASP Juice Shop v20.3.0
+Proxy: Nginx
 
-1. The authorized owner must verify ownership/control of LAB-01 and LAB-02.
-2. A named owner/signatory and named assessor must complete and sign `rules-of-engagement.md`.
-3. The exact start/end times, timezone, rate limits, and emergency contacts must be confirmed.
-4. The owner must confirm the two inventory entries and approve any additional service details in writing.
-5. The assessor must verify loopback and host-only isolation, synthetic data, and rollback snapshots.
+## 2. Lab Deployment Status
 
-Do not interpret the repository's presence, public visibility, or commit history as authorization. Do not test third-party assets or any target not listed in the approved inventory.
+| Component | Status |
+|---|---|
+| Docker Desktop | Running when manually started |
+| Juice Shop | Deployed |
+| Nginx Proxy | Deployed |
+| Internal Docker Network | Verified |
+| Proxy Access Network | Verified |
+| Localhost Port Binding | Verified |
+| Direct Juice Shop Port Exposure | Not exposed |
+| Application HTTP Response | 200 OK |
+
+## 3. Security Configuration Status
+
+| Control | Status |
+|---|---|
+| Juice Shop no-new-privileges | Verified |
+| Juice Shop cap_drop ALL | Verified |
+| Juice Shop memory limit | Verified |
+| Nginx read-only filesystem | Verified |
+| Nginx capabilities | Pending verification |
+| Nginx memory limit | Pending verification |
+| Nginx no-new-privileges | Pending verification |
+| Network separation | Verified |
+
+## 4. Documentation Status
+
+| Document | Status |
+|---|---|
+| Asset Inventory | Prepared |
+| Architecture and Data Flow | Prepared |
+| STRIDE Threat Register | Prepared |
+| Abuse Case Analysis | Prepared |
+| Security Controls Mapping | Prepared |
+| Rules of Engagement | Draft |
+| Evidence Handling Plan | Prepared |
+
+## 5. Authorization Requirements
+
+| Requirement | Status |
+|---|---|
+| Asset owner confirmation | Pending |
+| Named authorized approver | Pending |
+| Written authorization | Pending |
+| Signed Rules of Engagement | Pending |
+| Confirmed testing window | Pending |
+| Timezone confirmation | Pending |
+| Emergency contact | Pending |
+| Recovery procedure approval | Pending |
+| VM deployment and isolation validation | Pending / Not in current scope |
+
+## 6. Current Authorization Decision
+
+Status: NOT AUTHORIZED FOR SECURITY TESTING
+
+Reason:
+Written approval and completed Rules of Engagement
+have not yet been obtained.
+
+## 7. Conditions for Readiness
+
+The project may be considered ready for an authorized assessment
+only after all required approval and safety conditions are satisfied.
+
+Prepared By: __________________________
+
+Reviewed By: __________________________
+
+Authorized Approver: __________________
+
+Date: _________________________________
