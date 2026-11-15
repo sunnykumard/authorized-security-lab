@@ -1,36 +1,83 @@
 # Local Lab Setup and Safety Checks
 
-This folder contains setup guidance only. It does not deploy, scan, or exploit any target.
+This lab uses OWASP Juice Shop as the intentionally vulnerable **LAB-01** web application. The official project documents its Docker image and local usage; this repository pins the deployment to image tag `v20.3.0` for repeatability. See the [official running guide](https://pwning-juice-shop.github.io/companion-guide/latest/part1/running.html).
 
-## Required topology
+This folder contains configuration and preflight scripts. The GitHub repository cannot start Docker or create a VM on your personal computer. Run the commands below locally.
 
-- LAB-01 must bind to `127.0.0.1:8080` only.
-- LAB-02 must use a private **host-only** virtual network and the inventory address `192.168.56.20`.
-- Do not configure bridged networking, NAT, port forwarding, shared network adapters, or outbound routes.
-- Use synthetic training data and disposable accounts only.
+## Components and scope
 
-## Build sequence
+| ID | Component | Address | Status |
+|---|---|---|---|
+| LAB-01 | OWASP Juice Shop container | `http://127.0.0.1:8080` | Compose configuration supplied; local startup pending |
+| LAB-02 | Deliberately vulnerable VM | `192.168.56.20` | Manual VM setup pending; use only an owner-approved training image |
 
-1. Obtain the lab owner's written authorization in `../docs/rules-of-engagement.md`.
-2. Obtain the approved training app and VM image from the lab owner. Verify their source and integrity using owner-provided hashes where available.
-3. Create an isolated host-only virtual network with no gateway or external route. Do not attach an untrusted or production network.
-4. Import the deliberately vulnerable VM and assign the inventory's static host-only address only after confirming no address conflict in the isolated lab.
-5. Configure the training web app to listen only on loopback. Confirm that it is not exposed on a LAN interface.
-6. Seed synthetic data and create only owner-approved disposable identities.
-7. Take a clean VM snapshot and app/data backup. Record the snapshot identifier and rollback operator in the engagement log.
-8. Verify the architecture checklist in `../docs/architecture-data-flow.md`.
-9. Confirm the exact test window, operator, escalation contact, rate ceiling, and stop conditions with the owner.
-10. Perform only the written-permission test cases. Record minimal evidence and stop at the first boundary violation.
+The Compose network is marked `internal: true`, and the host port is explicitly bound to `127.0.0.1`. This restricts access to the local host and prevents the container network from routing externally. Do not change the binding to `0.0.0.0`, publish additional ports, or attach the container to another network.
 
-## Isolation verification
+## Requirements
 
-Before each engagement window, visually inspect the VM network adapter settings and confirm host-only mode. Confirm no NAT, bridged adapter, port forwarding, VPN route, or shared route provides external connectivity. Confirm the app is bound to loopback.
+- Windows 10/11 with Docker Desktop and the Docker Compose plugin, or a compatible Docker Engine/Compose installation.
+- Hardware virtualization enabled if you will also run LAB-02 in VirtualBox.
+- A clean snapshot/backup plan.
+- Completed written authorization in `../docs/rules-of-engagement.md` before security testing.
 
-Do not probe external IPs, scan the host machine, scan adjacent VM addresses, or test whether third-party systems are reachable. If isolation cannot be established confidently, do not start.
+## Start LAB-01 (Windows PowerShell)
+
+From the repository root:
+
+```powershell
+# Validate Docker and the Compose configuration
+.\scripts\preflight.ps1
+
+# Start the intentionally vulnerable app
+docker compose up -d
+
+# View startup logs
+docker compose logs --tail 50 juice-shop
+
+# Verify loopback binding and internal Docker network
+.\scripts\verify-lab.ps1
+```
+
+Then open `http://127.0.0.1:8080`. Use only synthetic accounts and data. The app is deliberately vulnerable; do not expose it to a LAN, the internet, or a public tunnel.
+
+To stop it:
+
+```powershell
+docker compose down
+```
+
+To remove the local container and network, use `docker compose down`. Do not use volume deletion flags unless you understand the data-loss effect.
+
+## LAB-02 VM setup (manual)
+
+No VM image was supplied, so this repository does not download or boot an unverified image. Obtain an intentionally vulnerable training VM from its official publisher and verify its integrity before import. Configure it as follows:
+
+1. Create a **host-only** virtual network in your hypervisor.
+2. Attach the VM to that host-only network only. Do not use bridged networking, NAT, port forwarding, or a second adapter.
+3. Assign `192.168.56.20` only after confirming that this address belongs to the isolated host-only subnet and is not already in use.
+4. Do not configure a default gateway or DNS server for the VM.
+5. Keep the VM powered off until its image source, network settings, owner approval, and rollback snapshot are confirmed.
+6. Take a clean snapshot and record its identifier and the rollback operator.
+7. Do not test the hypervisor, host OS, host-only gateway, or any adjacent address.
+
+If you cannot establish host-only isolation confidently, do not boot the VM for testing. LAB-02 is not considered validated merely because its IP address is configured.
+
+## Pre-test validation
+
+- [ ] Signed Rules of Engagement and exact test window are complete.
+- [ ] LAB-01 is bound only to `127.0.0.1:8080`.
+- [ ] Docker network reports `Internal: true`.
+- [ ] LAB-01 uses only synthetic data and disposable identities.
+- [ ] LAB-02 uses one host-only adapter only, with no gateway, NAT, bridged mode, or port forwarding.
+- [ ] LAB-02 address matches the approved inventory.
+- [ ] Snapshots/backups and rollback operator are recorded.
+- [ ] Emergency contact and stop authority are available.
+
+The PowerShell verification script validates LAB-01 only. LAB-02's hypervisor network mode must be inspected manually. Do not run penetration tests until every approval and isolation check is complete.
 
 ## Rollback
 
-After testing, stop all test processes. Have the designated owner restore the VM snapshot and app/data backup if state changed. Remove disposable accounts and rotate/delete lab-only secrets as agreed. Verify that no background test process remains, and record the cleanup/deletion date.
+After an exercise, stop test processes and run `docker compose down`. Have the designated owner restore the VM snapshot and app/data backup if state changed. Remove disposable accounts and rotate/delete lab-only secrets as agreed. Record cleanup and evidence deletion dates.
 
 ## Engagement log template
 
